@@ -40,7 +40,7 @@ function sourmusicConnect({onStatus = () => {}, onReady = () => {}, onEvent = ()
       if(ended || subscribing)return;
       subscribing = true;active = true;
       try {
-        await request('Subscribe',{events:{Twitch:['RewardRedemption']}});
+        await request('Subscribe',{events:{Twitch:['RewardRedemption','ChatMessage']}});
         if(ended)return;
         subscribed = true;clearTimeout(handshake);
         onStatus('Streamer.bot подключён · ' + port);

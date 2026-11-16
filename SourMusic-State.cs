@@ -18,7 +18,7 @@ public class CPHInline
                     if (String.IsNullOrEmpty(value) || value.Length > 4096) return false;
                     JObject command = JObject.Parse(value);
                     string type = (string)command["type"];
-                    if (type != "next" && type != "stop" && type != "play" && type != "add") return false;
+                    if (type != "next" && type != "stop" && type != "play" && type != "add" && type != "share") return false;
                     if (String.IsNullOrEmpty((string)command["id"]) || String.IsNullOrEmpty((string)command["session"])) return false;
                     command["at"] = now;
                     string saved = CPH.GetGlobalVar<string>("sourmusic.commands", false);

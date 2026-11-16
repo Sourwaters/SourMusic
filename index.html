@@ -41,8 +41,8 @@
 </style>
 <main>
   <header><h1>Sourwaters Music</h1><span id="connection" role="status"></span></header>
-  <p id="page-address" style="margin: 0 0 8px; color: #d5b9ff; overflow-wrap: anywhere"></p>
-  <p id="role-label" style="color:#d5b9ff"></p><p id="orders" style="color:#d5b9ff">Заказы · v9: после открытия страницы покупок ещё не получено</p>
+  <section style="margin:12px 0"><label><input type="checkbox" id="share-toggle"> Подключить очередь второго стримера</label><p><input id="relay-sender" aria-label="Twitch-логин отправителя заказов" placeholder="Twitch-логин отправителя заказов" maxlength="25"></p><p id="share-status" role="status"></p><button type="button" id="copy-follower" hidden>Скопировать ссылку для второго стримера ⧉</button></section><p id="page-address" style="margin: 0 0 8px; color: #d5b9ff; overflow-wrap: anywhere"></p>
+  <p id="role-label" style="color:#d5b9ff"></p><p id="orders" style="color:#d5b9ff">Заказы · v10: после открытия страницы покупок ещё не получено</p>
   <p id="relay" style="color:#d5b9ff">Оверлей: подключение…</p>
   <div id="screen"><span>Добавьте видео YouTube</span></div>
   <h2 id="track">Очередь пуста</h2>
@@ -61,7 +61,7 @@
   </form>
   <details open><summary id="count">В очереди (0)</summary><ol id="queue"></ol></details>
 <div class="copy-actions"><button type="button" id="copy-source" aria-label="Скопировать: Источник OBS">Источник OBS<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V4H3v13h5"/></svg></button><button type="button" id="copy-dock" aria-label="Скопировать: Док управления">Док управления<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V4H3v13h5"/></svg></button><button type="button" id="copy-overlay" aria-label="Скопировать: Оверлей">Оверлей<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V4H3v13h5"/></svg></button><button type="button" id="copy-code" aria-label="Скопировать: Код для Streamer.bot">Код для Streamer.bot<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V4H3v13h5"/></svg></button></div><p id="copy-result" role="status"></p><textarea id="copy-fallback" aria-label="Для ручного копирования" readonly hidden style="width:100%;height:100px"></textarea></main>
-<script src="sourmusic-connection.js?v=9"></script>
+<script src="sourmusic-connection.js?v=10"></script><script src="firebase-config.js?v=10"></script><script src="sourmusic-cloud.js?v=10"></script>
 <script>
 
 const ports = [8080, 8181];
@@ -102,13 +102,38 @@ let loadTimeout;
 let playing = null;
 let stoppedByUser=false;
 const controlMode = new URLSearchParams(location.search).get('role') === 'control';
+let relaySender=localStorage.getItem("sourmusic.relay.sender")??"xwaran";
+let cloudPublisher=null,cloudOpening=false,cloudInfo={enabled:false,connected:false};
+async function setSharing(enabled,sender=relaySender){
+ relaySender=String(sender||"").trim().toLowerCase();if(!/^[a-z0-9_]{0,25}$/.test(relaySender))relaySender="";localStorage.setItem("sourmusic.relay.sender",relaySender);
+ if(cloudOpening)return false;
+ cloudOpening=true;
+ try{
+  if(enabled&&!cloudPublisher){cloudInfo={enabled:true,connected:false};renderSharing();cloudPublisher=await SourMusicCloud.publisher(info=>{const changed=JSON.stringify(cloudInfo)!==JSON.stringify(info);cloudInfo=info;renderSharing();if(changed)publishNowPlaying(false);});localStorage.setItem('sourmusic.share.enabled','1');publishCloud();}
+  if(!enabled&&cloudPublisher){await cloudPublisher.close();cloudPublisher=null;localStorage.removeItem('sourmusic.share.enabled');cloudInfo={enabled:false,connected:false};}
+  renderSharing();publishNowPlaying();return true;
+ }catch(e){cloudInfo={enabled:false,connected:false,error:e.message};renderSharing();return false;}
+ finally{cloudOpening=false;renderSharing();}
+}
+function renderSharing(){
+ const info=controlMode?remoteState?.cloud:{...cloudInfo,sender:relaySender};
+ if(document.activeElement!==get('relay-sender'))get('relay-sender').value=info?.sender||'';
+ get('share-toggle').checked=!!info?.enabled;get('share-toggle').disabled=cloudOpening||(controlMode&&(!remoteState||!!commandPending));
+ get('share-status').textContent=info?.error||(!info?.enabled?'':info.connected?'Общая очередь подключена':'Подключение общей очереди…');
+ get('copy-follower').hidden=!info?.room;
+}
+function publishCloud(){
+ if(!cloudPublisher)return;
+ cloudPublisher.publish({current:current||null,queue,playback:playing?'playing':current?'paused':'idle',position:player?.getCurrentTime?.()||0,sampledAt:Date.now(),session:playerSession});
+}
+setInterval(publishCloud,5000);
 const playerSession = crypto.randomUUID();
 const seenCommands = new Set();
 const acknowledgements = [];
 let remoteState = null, commandPending = null, polling = false;
 let bot, relayAction, publishing = false, publishDirty = false;
 const seenOrders = new Set();
-get('role-label').textContent = controlMode ? 'Док · управление источником OBS · v9' : 'Источник · воспроизведение · v9';
+get('role-label').textContent = controlMode ? 'Док · управление источником OBS · v10' : 'Источник · воспроизведение · v10';
 if(controlMode) get('screen').hidden=true;
 function connectionIndicator(ready){get('connection').textContent=ready?'Подключено':'Подключение…';get('connection').setAttribute('data-ready',String(ready));}
 function playbackButton(active){get('stop').textContent=active?'❚❚':'▶';get('stop').setAttribute('aria-label',active?'Пауза':'Воспроизвести');get('stop').title=active?'Пауза':'Воспроизвести';}
@@ -131,12 +156,13 @@ async function findRelay() {
   } catch {get('relay').textContent='Нет связи со Streamer.bot';}
 }
 function snapshot() {
-  return {version:9,session:playerSession,at:Date.now(),track:playing,current:current||null,queue,
+  return {version:10,session:playerSession,at:Date.now(),track:playing,current:current||null,queue,
     playback:playing?'playing':current?'stopped':'idle',status:get('status').textContent,
-    order:get('orders').textContent,acks:acknowledgements.slice(-20)};
+    cloud:{...cloudInfo,sender:relaySender},order:get('orders').textContent,acks:acknowledgements.slice(-20)};
 }
-async function publishNowPlaying() {
+async function publishNowPlaying(includeCloud=true) {
   if(controlMode)return;
+  if(includeCloud)publishCloud();
   publishDirty=true;
   if(!relayAction || !bot?.isConnected() || publishing)return;
   publishing=true;
@@ -149,6 +175,7 @@ async function publishNowPlaying() {
   finally {publishing=false;}
 }
 function renderRemote() {
+  renderSharing();
   const s=remoteState;
   get('track').textContent=s?.current?.title||(s?'Очередь пуста':'Ожидание источника OBS');
   get('viewer').textContent=s?.current?'Заказ от '+s.current.user:'';
@@ -204,6 +231,7 @@ async function pollSync() {
         if(command.type==='next')next();
         else if(command.type==='stop')stopTrack();
         else if(command.type==='play')resumeTrack();
+        else if(command.type==='share')ok=await setSharing(!!command.enabled,command.sender);
         else if(command.type==='add')ok=enqueue(command.url,command.user||'Sour');
         else ok=false;
         acknowledgements.push({id:command.id,ok,message:ok?'':'Не удалось выполнить команду'});
@@ -264,7 +292,7 @@ function enqueue(input, user) {
     return false;
   }
   if(queue.length>=100){status('В очереди уже 100 треков');return false;}
-  const track = { id, title: 'Загрузка названия…', user:String(user||'Зритель').slice(0,80) };
+  const track = { id, key:crypto.randomUUID(), title: 'Загрузка названия…', user:String(user||'Зритель').slice(0,80) };
   queue.push(track);
   resolveTitle(track);
   if (!current) next();
@@ -385,17 +413,31 @@ get('add').addEventListener('submit', async event => {
   if(added)fields.video.value='';
 });
 get('next').addEventListener('click',()=>controlMode?sendCommand('next'):next());
+renderSharing();
+get('share-toggle').addEventListener('change',async e=>{if(controlMode)await sendCommand('share',{enabled:e.target.checked,sender:get('relay-sender').value});else await setSharing(e.target.checked,get('relay-sender').value);renderSharing();});
+get('copy-follower').addEventListener('click',()=>{const info=controlMode?remoteState?.cloud:cloudInfo;if(info?.room)copyValue(new URL('music_follower.html?v=10#room='+info.room,location.href).href);});
+if(!controlMode&&localStorage.getItem('sourmusic.share.enabled')==='1')setSharing(true);
 get('stop').addEventListener('click',()=>{if(controlMode)sendCommand(remoteState?.playback==='playing'?'stop':'play');else if(playing)stopTrack();else resumeTrack();});
 bot = sourmusicConnect({
   onStatus:text=>{connectionIndicator(!controlMode && text.startsWith('Streamer.bot подключён'));if(controlMode&&!text.startsWith('Streamer.bot подключён')){remoteState=null;renderRemote();}},
   onReady:()=>{findRelay();pollSync();},
   onEvent:({event,data})=>{
     if(controlMode)return;
+    if(String(event.source).toLowerCase()==='twitch'&&String(event.type).toLowerCase()==='chatmessage'){
+      const login=String(data?.user?.login||data?.user?.name||data?.user_login||data?.userName||data?.message?.username||'').toLowerCase();
+      if(!cloudInfo.enabled||!relaySender||login!==relaySender)return;
+      const text=typeof data?.message==='string'?data.message:(data?.message?.text||data?.message?.message||data?.text||'');
+      const parts=text.trim().split(/\s+/);
+      if(parts.length!==4||parts[0].toLowerCase()!=='!addsourmusic'||!videoId(parts[1])||!/^\w{1,25}$/.test(parts[2])||! /^[a-zA-Z0-9-]{8,80}$/.test(parts[3]))return;
+      const key='relay:'+login+':'+parts[3];if(seenOrders.has(key))return;
+      if(enqueue(parts[1],parts[2])){seenOrders.add(key);if(seenOrders.size>500)seenOrders.delete(seenOrders.values().next().value);}
+      return;
+    }
     if(String(event.source).toLowerCase()!=='twitch'||String(event.type).toLowerCase()!=='rewardredemption')return;
     const name=String(data?.reward?.title ?? data?.rewardName ?? data?.rewardTitle ?? '').trim();
     const input=String(data?.user_input ?? data?.userInput ?? data?.rawInput ?? '').trim();
     const normal=s=>s.normalize('NFKC').replace(/\s+/g,' ').trim().toLowerCase();
-    const note=message=>{get('orders').textContent='Заказы · v9 · '+new Date().toLocaleTimeString()+': '+message;publishNowPlaying();};
+    const note=message=>{get('orders').textContent='Заказы · v10 · '+new Date().toLocaleTimeString()+': '+message;publishNowPlaying();};
     if(normal(name)!==normal(rewardTitle)){note('Получена награда «'+name+'», ожидается «'+rewardTitle+'».');return;}
     if(!input){note('Заказ получен, но поле ссылки пустое. Поля события: '+Object.keys(data||{}).join(', '));return;}
     if(!videoId(input)){note('Заказ получен, но ссылка не распознана: '+input.slice(0,250));return;}
@@ -421,12 +463,12 @@ api.onerror = () => {
 };
 document.head.append(api);
 }
-const codeForStreamerBot="using System;\nusing Newtonsoft.Json;\nusing Newtonsoft.Json.Linq;\n\npublic class CPHInline\n{\n    private static readonly object Gate = new object();\n    public bool Execute()\n    {\n        lock (Gate)\n        {\n            try\n            {\n                string value;\n                long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();\n                if (CPH.TryGetArg<string>(\"sourmusicCommand\", out value))\n                {\n                    if (String.IsNullOrEmpty(value) || value.Length > 4096) return false;\n                    JObject command = JObject.Parse(value);\n                    string type = (string)command[\"type\"];\n                    if (type != \"next\" && type != \"stop\" && type != \"play\" && type != \"add\") return false;\n                    if (String.IsNullOrEmpty((string)command[\"id\"]) || String.IsNullOrEmpty((string)command[\"session\"])) return false;\n                    command[\"at\"] = now;\n                    string saved = CPH.GetGlobalVar<string>(\"sourmusic.commands\", false);\n                    JArray commands = String.IsNullOrEmpty(saved) ? new JArray() : JArray.Parse(saved);\n                    foreach (JToken item in commands) if ((string)item[\"id\"] == (string)command[\"id\"]) return true;\n                    commands.Add(command);\n                    while (commands.Count > 64) commands.RemoveAt(0);\n                    CPH.SetGlobalVar(\"sourmusic.commands\", commands.ToString(Formatting.None), false);\n                    return true;\n                }\n                if (!CPH.TryGetArg<string>(\"sourmusicState\", out value) || String.IsNullOrEmpty(value) || value.Length > 65536) return false;\n                JObject state = JObject.Parse(value);\n                state[\"at\"] = now;\n                CPH.SetGlobalVar(\"sourmusic.nowPlaying\", state.ToString(Formatting.None), false);\n                return true;\n            }\n            catch { return false; }\n        }\n    }\n}\n";
+const codeForStreamerBot="using System;\nusing Newtonsoft.Json;\nusing Newtonsoft.Json.Linq;\n\npublic class CPHInline\n{\n    private static readonly object Gate = new object();\n    public bool Execute()\n    {\n        lock (Gate)\n        {\n            try\n            {\n                string value;\n                long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();\n                if (CPH.TryGetArg<string>(\"sourmusicCommand\", out value))\n                {\n                    if (String.IsNullOrEmpty(value) || value.Length > 4096) return false;\n                    JObject command = JObject.Parse(value);\n                    string type = (string)command[\"type\"];\n                    if (type != \"next\" && type != \"stop\" && type != \"play\" && type != \"add\" && type != \"share\") return false;\n                    if (String.IsNullOrEmpty((string)command[\"id\"]) || String.IsNullOrEmpty((string)command[\"session\"])) return false;\n                    command[\"at\"] = now;\n                    string saved = CPH.GetGlobalVar<string>(\"sourmusic.commands\", false);\n                    JArray commands = String.IsNullOrEmpty(saved) ? new JArray() : JArray.Parse(saved);\n                    foreach (JToken item in commands) if ((string)item[\"id\"] == (string)command[\"id\"]) return true;\n                    commands.Add(command);\n                    while (commands.Count > 64) commands.RemoveAt(0);\n                    CPH.SetGlobalVar(\"sourmusic.commands\", commands.ToString(Formatting.None), false);\n                    return true;\n                }\n                if (!CPH.TryGetArg<string>(\"sourmusicState\", out value) || String.IsNullOrEmpty(value) || value.Length > 65536) return false;\n                JObject state = JObject.Parse(value);\n                state[\"at\"] = now;\n                CPH.SetGlobalVar(\"sourmusic.nowPlaying\", state.ToString(Formatting.None), false);\n                return true;\n            }\n            catch { return false; }\n        }\n    }\n}\n";
 async function copyValue(value){
  try{await navigator.clipboard.writeText(value);get('copy-result').textContent='Скопировано';get('copy-fallback').hidden=true;}
  catch{const field=get('copy-fallback');field.value=value;field.hidden=false;field.focus();field.select();get('copy-result').textContent='Нажмите Ctrl+C';}
 }
 const baseUrl=new URL('./',location.href);
-for(const [id,path] of [['copy-source','?role=source&v=9'],['copy-dock','?role=control&v=9'],['copy-overlay','music_overlay.html?v=9']])get(id).addEventListener('click',()=>copyValue(new URL(path,baseUrl).href));
+for(const [id,path] of [['copy-source','?role=source&v=10'],['copy-dock','?role=control&v=10'],['copy-overlay','music_overlay.html?v=10']])get(id).addEventListener('click',()=>copyValue(new URL(path,baseUrl).href));
 get('copy-code').addEventListener('click',()=>copyValue(codeForStreamerBot));
 </script></html>
