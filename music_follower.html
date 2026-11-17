@@ -1,26 +1,25 @@
 <!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="strict-origin-when-cross-origin"><title>SourMusic — совместное воспроизведение</title>
 <style>*{box-sizing:border-box}body{margin:0;background:#151020;color:#faf6ff;font:15px system-ui}main{max-width:900px;margin:auto;padding:16px}#screen{aspect-ratio:16/9;display:grid;place-items:center;background:#09060e;border:1px solid #60468b;border-radius:12px;overflow:hidden}iframe{width:100%;height:100%;border:0}h1{font-size:22px}p{color:#d5b9ff}#connection{font-size:13px}button{background:#a171f8;border:0;border-radius:7px;padding:10px;cursor:pointer}[hidden]{display:none!important}</style>
-<main><p id="connection">Подключение…</p><div id="screen">Ожидание основного плеера</div><h1 id="title">Sourwaters Music</h1><p id="viewer"></p><p id="error" role="status"></p><button id="unlock" hidden>Включить воспроизведение</button> <button id="retry-youtube" type="button" hidden>Повторить загрузку YouTube</button></main>
+<main><p id="connection">Подключение…</p><div id="screen">Ожидание основного плеера</div><h1 id="title">Sourwaters Music</h1><p id="viewer"></p><p id="error" role="status"></p><p id="embed-hint" hidden>Если видео не запустилось, откройте «Взаимодействовать» в OBS и нажмите ▶ в видео.</p><button id="unlock" hidden>Включить воспроизведение</button></main>
 <script src="firebase-config.js?v=11"></script><script src="sourmusic-cloud.js?v=11"></script><script>
 const get=id=>document.getElementById(id);let room=null,connected=false,apiReady=false,player=null,ready=false,trackKey=null,lastSeek=0;
 const roomId=new URLSearchParams(location.hash.slice(1)).get('room');
+const directRequested=new URLSearchParams(location.search).get('player')==='embed';
+let directTrackKey=null;
 const youtubeApiUrls=['https://www.youtube.com/iframe_api','https://www.youtube.com/player_api'];
 let apiScript=null,apiTimeout=null,apiAttempt=0,apiFailed=false;
 
 function onYouTubeReady(){
-  if(apiReady || typeof window.YT?.Player!=='function')return;
+  if(apiReady || apiFailed || typeof window.YT?.Player!=='function')return;
   apiReady=true;
   clearTimeout(apiTimeout);
-  get('retry-youtube').hidden=true;
   sync();
 }
 
 function loadYouTubeApi(){
   if(apiReady || apiScript || apiFailed)return;
   const script=document.createElement('script');
-  const url=new URL(youtubeApiUrls[apiAttempt]);
-  if(apiRetry)url.searchParams.set('_',String(Date.now()));
-  script.src=url.href;
+  script.src=youtubeApiUrls[apiAttempt];
   apiScript=script;
   function failed(){
     if(apiReady || apiScript!==script)return;
@@ -39,39 +38,72 @@ function loadYouTubeApi(){
   apiTimeout=setTimeout(failed,10000);
   document.head.append(script);
 }
-let apiRetry=false;
 window.onYouTubeIframeAPIReady=onYouTubeReady;
 window.onYouTubePlayerAPIReady=onYouTubeReady;
-get('retry-youtube').onclick=()=>{
-  apiFailed=false;
-  apiAttempt=0;
-  apiRetry=true;
-  loadYouTubeApi();
-  sync();
-};
 function alive(){return connected&&room?.online&&room?.state&&room.now()-room.updatedAt<30000;}
+function youtubeFrame(id,params){
+  const frame=document.createElement('iframe');
+  frame.title='YouTube';
+  frame.allow='autoplay; encrypted-media; fullscreen';
+  frame.referrerPolicy='strict-origin-when-cross-origin';
+  frame.src='https://www.youtube.com/embed/'+id+'?'+new URLSearchParams(params);
+  return frame;
+}
+
+function stopDirect(message){
+  directTrackKey=null;
+  const screen=get('screen');
+  if(screen.textContent!==message)screen.textContent=message;
+}
+
+function syncDirect(state,track,key){
+  if(state.playback!=='playing'){
+    stopDirect('Пауза у основного стримера');
+    return;
+  }
+  if(directTrackKey===key)return;
+  const position=SourMusicCloud.targetPosition(state,room.now());
+  const start=Number.isFinite(position)?Math.max(0,Math.floor(position)):0;
+  const frame=youtubeFrame(track.id,{autoplay:'1',playsinline:'1',start:String(start)});
+  directTrackKey=key;
+  get('screen').replaceChildren(frame);
+}
+
 function sync(){
- if(!alive()){if(ready)player.pauseVideo();get('connection').textContent='Ожидание основного плеера';get('retry-youtube').hidden=true;return;}
+ const direct=directRequested||apiFailed;
+ const hint=get('embed-hint');
+ if(!alive()){
+  if(ready)player.pauseVideo();
+  if(direct)stopDirect('Ожидание основного плеера');
+  get('connection').textContent='Ожидание основного плеера';
+  hint.hidden=true;
+  return;
+ }
  const s=room.state,t=s.current;
- get('connection').textContent='● Подключено';get('title').textContent=t?.title||'Очередь пуста';get('viewer').textContent=t?'Заказ от '+t.user:'';
- if(!t){if(ready)player.stopVideo();else get('screen').textContent='Очередь пуста';get('retry-youtube').hidden=true;return;}
- if(!/^[\w-]{11}$/.test(t.id||'')){get('error').textContent='Некорректный идентификатор трека';return;}
+ get('connection').textContent=direct?'● Подключено · Прямой плеер YouTube':'● Подключено';
+ get('title').textContent=t?.title||'Очередь пуста';get('viewer').textContent=t?'Заказ от '+t.user:'';
+ hint.hidden=true;
+ if(!t){if(ready)player.stopVideo();else stopDirect('Очередь пуста');return;}
+ if(!/^[\w-]{11}$/.test(t.id||'')){
+  if(direct)stopDirect('Некорректный идентификатор трека');
+  get('error').textContent='Некорректный идентификатор трека';return;
+ }
  const key=t.key||t.id;
  if(t.manual){
-  get('retry-youtube').hidden=true;
+  if(direct){stopDirect('Трек запущен вручную у основного стримера');return;}
   if(trackKey!==key+':m'){trackKey=key+':m';ready=false;if(player){player.destroy();player=null;}get('screen').textContent='Трек запущен вручную у основного стримера';get('error').textContent='';}
   return;
  }
+ if(direct){syncDirect(s,t,key);hint.hidden=s.playback!=='playing';return;}
  if(!apiReady){
   if(typeof window.YT?.Player==='function'){onYouTubeReady();return;}
-  get('screen').textContent=apiFailed?'YouTube не загрузился в браузерном источнике OBS':'Загрузка плеера YouTube…';
-  get('retry-youtube').hidden=!apiFailed;
+  get('screen').textContent='Загрузка плеера YouTube…';
   return;
  }
  if(key!==trackKey){
   trackKey=key;ready=false;lastSeek=0;if(player)player.destroy();
-  const frame=document.createElement('iframe');frame.title='YouTube';frame.allow='autoplay; encrypted-media; fullscreen';frame.referrerPolicy='strict-origin-when-cross-origin';
-  frame.src='https://www.youtube.com/embed/'+t.id+'?enablejsapi=1&playsinline=1&autoplay=0&origin='+encodeURIComponent(location.origin);get('screen').replaceChildren(frame);get('error').textContent='';
+  const frame=youtubeFrame(t.id,{enablejsapi:'1',playsinline:'1',autoplay:'0',origin:location.origin});
+  get('screen').replaceChildren(frame);get('error').textContent='';
   player=new YT.Player(frame,{events:{onReady(){ready=true;sync();},onAutoplayBlocked(){get('unlock').hidden=false;get('error').textContent='В OBS откройте «Взаимодействовать» и нажмите «Включить воспроизведение»';},onError(e){get('error').textContent='YouTube не воспроизводит этот трек ('+e.data+'). Очередью управляет основной плеер.';}}});return;
  }
  if(!ready)return;
@@ -83,7 +115,7 @@ function sync(){
  else if(actual!==2&&actual!==5)player.pauseVideo();
 }
 get('unlock').onclick=()=>{player?.playVideo();get('unlock').hidden=true;get('error').textContent='';sync();};
-loadYouTubeApi();
+if(!directRequested)loadYouTubeApi();
 SourMusicCloud.subscribe(roomId,r=>{room=r;sync();},(ok,error)=>{connected=ok;if(error)get('error').textContent='Не удалось прочитать общую очередь: '+error;else if(ok&&get('error').textContent.startsWith('Не удалось прочитать'))get('error').textContent='';sync();}).catch(e=>{get('error').textContent=e.message;});
 setInterval(sync,1000);
 </script></html>
