@@ -443,7 +443,7 @@ get('add').addEventListener('submit', async event => {
 get('next').addEventListener('click',()=>controlMode?sendCommand('next'):next());
 renderSharing();
 get('share-toggle').addEventListener('change',async e=>{if(controlMode)await sendCommand('share',{enabled:e.target.checked,sender:get('relay-sender').value});else await setSharing(e.target.checked,get('relay-sender').value);renderSharing();});
-get('copy-follower').addEventListener('click',()=>{const info=controlMode?remoteState?.cloud:cloudInfo;if(info?.room)copyValue(new URL('music_follower.html?v=11#room='+info.room,location.href).href);});
+get('copy-follower').addEventListener('click',()=>{const info=controlMode?remoteState?.cloud:cloudInfo;if(info?.room)copyValue(new URL('music_follower.html?v=11.1#room='+info.room,location.href).href);});
 if(!controlMode&&localStorage.getItem('sourmusic.share.enabled')==='1')setSharing(true);
 get('stop').addEventListener('click',()=>{if(controlMode)sendCommand(remoteState?.playback==='playing'?'stop':'play');else if(playing)stopTrack();else resumeTrack();});
 bot = sourmusicConnect({
