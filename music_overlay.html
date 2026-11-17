@@ -27,7 +27,7 @@
     <p id="viewer"></p>
   </section>
 </article>
-<script src="sourmusic-connection.js?v=8"></script>
+<script src="sourmusic-connection.js?v=11"></script>
 <script>
 const get = id => document.getElementById(id);
 let previous = null;
@@ -55,20 +55,23 @@ function display(track) {
   }else get('card').hidden=true;
   previous=track;
 }
-let polling=false;
+let polling=false,failures=0;
 async function refresh() {
   if(polling)return;
   polling=true;
   try {
-    const result=await bot.request('GetGlobal',{variable:'sourmusic.nowPlaying',persisted:false});
-    display(sourmusicState(sourmusicGlobal(result,'sourmusic.nowPlaying')));
-  }catch{display(null);}
+    // Лёгкая переменная sourmusic.track (новый C#); запасной вариант — полное состояние.
+    let raw=sourmusicGlobal(await bot.request('GetGlobal',{variable:'sourmusic.track',persisted:false}),'sourmusic.track');
+    if(!raw)raw=sourmusicGlobal(await bot.request('GetGlobal',{variable:'sourmusic.nowPlaying',persisted:false}),'sourmusic.nowPlaying');
+    failures=0;
+    display(sourmusicState(raw));
+  }catch{if(++failures>=3)display(null);}
   finally{polling=false;}
 }
 if(new URLSearchParams(location.search).get('demo')==='1') {
   show('СЕЙЧАС ИГРАЕТ','Laurena Frey — Everywhere','Соур');
 }else{
-  bot=sourmusicConnect({onReady:refresh,onStatus:text=>{
+  bot=sourmusicConnect({events:null,onReady:refresh,onStatus:text=>{
     if(!text.startsWith('Streamer.bot подключён'))display(null);
     document.title='SourMusic · '+text;
   }});

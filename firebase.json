@@ -1,0 +1,28 @@
+{
+  "hosting": {
+    "site": "sourwaters-music",
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "database.rules.json",
+      "SETUP.txt",
+      "*.cs",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      }
+    ]
+  },
+  "database": {
+    "rules": "database.rules.json"
+  }
+}

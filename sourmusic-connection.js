@@ -1,5 +1,6 @@
 /* Local Streamer.bot connection; no data is sent to a remote server. */
-function sourmusicConnect({onStatus = () => {}, onReady = () => {}, onEvent = () => {}} = {}) {
+// events: объект подписки Streamer.bot; null — не подписываться (док и оверлей), только проверить связь.
+function sourmusicConnect({onStatus = () => {}, onReady = () => {}, onEvent = () => {}, events = {Twitch:['RewardRedemption','ChatMessage']}} = {}) {
   let socket, active = false, sequence = 0;
   const pending = new Map();
   let password = '';
@@ -40,7 +41,8 @@ function sourmusicConnect({onStatus = () => {}, onReady = () => {}, onEvent = ()
       if(ended || subscribing)return;
       subscribing = true;active = true;
       try {
-        await request('Subscribe',{events:{Twitch:['RewardRedemption','ChatMessage']}});
+        if(events)await request('Subscribe',{events});
+        else await request('GetGlobal',{variable:'sourmusic.nowPlaying',persisted:false});
         if(ended)return;
         subscribed = true;clearTimeout(handshake);
         onStatus('Streamer.bot подключён · ' + port);
@@ -56,8 +58,8 @@ function sourmusicConnect({onStatus = () => {}, onReady = () => {}, onEvent = ()
         helloSeen=true;clearTimeout(legacy);active=true;
         if(packet.authentication) {
           clearTimeout(handshake);
-          if(!password)password=window.prompt('Пароль WebSocket Streamer.bot (хранится только до закрытия этой страницы):') || '';
-          if(!password){onStatus('Для подключения нужен пароль Streamer.bot. Обновите страницу.');ended=true;active=false;current.close();return;}
+          if(!password)password=new URLSearchParams(location.hash.slice(1)).get('sbpw') || window.prompt('Пароль WebSocket Streamer.bot (хранится только до закрытия этой страницы):') || '';
+          if(!password){onStatus('Для подключения нужен пароль Streamer.bot: добавьте #sbpw=ПАРОЛЬ к адресу страницы и обновите её.');ended=true;active=false;current.close();return;}
           try {
             const a=packet.authentication;
             await request('Authenticate',{authentication:await hash(await hash(password+a.salt)+a.challenge)});
