@@ -4,67 +4,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>Sourwaters Music</title>
-<style>
-  * { box-sizing: border-box; }
-  body { margin: 0; padding: 16px; background: #151020; color: #faf6ff; font: 15px system-ui, sans-serif; }
-  main { max-width: 760px; margin: auto; }
-  header, form { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  [hidden] { display: none !important; }
-  #manual a { color: #d5b9ff; }
-  header { justify-content: space-between; margin-bottom: 10px; }
-  h1 { font-size: 23px; margin: 0; }
-  #connection { color: #d5b9ff; }
-  #screen { background: #09060e; display: grid; place-items: center; height: clamp(200px, 48vh, 380px);
-    border: 1px solid #60468b; border-radius: 12px; overflow: hidden; }
-  #screen iframe { display: block; border: 0; width: 100%; height: 100%; }
-  #track { margin: 10px 0 2px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-  #viewer, #status { color: #e0d1ee; margin: 4px 0; }
-  #status { min-height: 20px; }
-  input, button { padding: 8px 10px; border: 1px solid #a171f8; border-radius: 7px; font: inherit; }
-  input { background: #251937; color: white; min-width: 110px; }
-  input[name="video"] { flex: 2; }
-  input[name="viewer"] { flex: 1; }
-  button { cursor: pointer; background: #a171f8; color: #150b23; font-weight: 700; }
-  button:disabled { opacity: .55; cursor: default; }
-  ol { margin: 5px 0 0; padding-left: 24px; max-height: 95px; overflow: auto; }
-  details { margin-top: 8px; }
-#page-address,#role-label,#orders,#relay {display:none}
-#connection {font-size:13px;display:flex;align-items:center;gap:7px}
-#connection::before {content:'';width:8px;height:8px;border-radius:50%;background:#e1ae58}
-#connection[data-ready="true"]::before {background:#6ee7a2}
-#status:empty {display:none} #status {min-height:0}
-#viewer {margin-bottom:16px}
-.copy-actions {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:20px}
-.copy-actions button {display:flex;justify-content:space-between;align-items:center;gap:8px;background:#251937;color:#e0d1ee;text-align:left;font-size:13px}
-.copy-actions svg {flex-shrink:0}
-#stop {min-width:42px;font-size:18px;line-height:20px}
-</style>
+<link rel="stylesheet" href="brand.css?v=12">
 <main>
-  <header><h1>Sourwaters Music</h1><span id="connection" role="status"></span></header>
-  <section style="margin:12px 0"><label><input type="checkbox" id="share-toggle"> Подключить очередь второго стримера</label><p><input id="relay-sender" aria-label="Twitch-логин отправителя заказов" placeholder="Twitch-логин отправителя заказов" maxlength="25"></p><p id="share-status" role="status"></p><button type="button" id="copy-follower" hidden>Скопировать ссылку для второго стримера ⧉</button></section><p id="page-address" style="margin: 0 0 8px; color: #d5b9ff; overflow-wrap: anywhere"></p>
-  <p id="role-label" style="color:#d5b9ff"></p><p id="orders" style="color:#d5b9ff">Заказы · v10: после открытия страницы покупок ещё не получено</p>
-  <p id="relay" style="color:#d5b9ff">Оверлей: подключение…</p>
-  <div id="screen"><span>Добавьте видео YouTube</span></div>
-  <h2 id="track">Очередь пуста</h2>
-  <p id="viewer"></p>
-  <p id="status" role="status"></p>
-  <form id="manual" hidden>
+<header><div class="brand"><img src="assets/logo.svg" alt="SourMusic"><p><span>SourMusic</span>Заказы музыки для эфира</p></div><span id="connection" role="status"></span></header>
+<section class="sharing" aria-label="Совместная очередь"><label class="share-heading"><span class="switch"><input type="checkbox" id="share-toggle"><i></i></span>Подключить очередь второго стримера</label><div class="share-fields"><input id="relay-sender" aria-label="Twitch-логин отправителя заказов" placeholder="Twitch-логин" maxlength="25"><button type="button" id="copy-follower" hidden>Ссылка второго стримера ⧉</button></div><p id="share-status" role="status"></p></section>
+<p id="page-address"></p><p id="role-label"></p><p id="orders"></p><p id="relay"></p>
+<article class="player-card"><div class="card-cap"><span id="playback-label">Сейчас в эфире</span><span class="cut">SourMusic</span></div><div class="now"><div class="record empty" id="record" data-playing="false"><div class="vinyl"><img class="cover-art" id="cover-art" src="assets/logo.svg" alt="Обложка трека"></div><svg class="progress-ring" viewBox="0 0 160 160" aria-label="Прогресс трека" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="record-progress"><circle class="ring-track" cx="80" cy="80" r="75"/><circle class="ring-value" id="ring-value" cx="80" cy="80" r="75" pathLength="100"/></svg><button class="transport" type="button" id="stop" disabled aria-label="Воспроизвести"><svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5a1 1 0 0 1 1.5-.86l10 7a1 1 0 0 1 0 1.72l-10 7A1 1 0 0 1 8 19z"/></svg><svg class="pause-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.5"/><rect x="14" y="5" width="4" height="14" rx="1.5"/></svg></button></div><section class="song"><p class="eyebrow">Ваш саундтрек</p><h2 id="track">Очередь пуста</h2><p id="viewer"></p></section><button type="button" id="next" class="next-button" disabled aria-label="Следующий" title="Следующий трек"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m5 5 11 7L5 19z"/><rect x="17" y="5" width="3" height="14" rx="1"/></svg></button></div><div id="screen"><span>Добавьте видео YouTube</span></div><section class="queue-section"><details open><summary id="count">В очереди (0)</summary><ol id="queue"></ol></details></section></article>
+<p id="status" role="status"></p>  <form id="manual" hidden>
     <a id="watch" target="_blank" rel="noopener noreferrer">Открыть на YouTube</a>
     <input id="manual-title" aria-label="Название трека для оверлея" placeholder="Название трека" maxlength="200" required>
     <button id="manual-start">Уже играет · показать в оверлее</button>
   </form>
-  <form id="add">
-    <input name="video" aria-label="Ссылка YouTube" placeholder="Ссылка YouTube" required>
-    <input name="viewer" aria-label="Ник заказавшего" placeholder="Ник заказавшего" maxlength="60">
-    <button id="add-button">Добавить</button>
-    <button type="button" id="next" disabled>Следующий</button><button type="button" id="stop" disabled aria-label="Воспроизвести">▶</button>
-  </form>
-  <details open><summary id="count">В очереди (0)</summary><ol id="queue"></ol></details>
-<div class="copy-actions"><button type="button" id="copy-source" aria-label="Скопировать: Источник OBS">Источник OBS<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V4H3v13h5"/></svg></button><button type="button" id="copy-dock" aria-label="Скопировать: Док управления">Док управления<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V4H3v13h5"/></svg></button><button type="button" id="copy-overlay" aria-label="Скопировать: Оверлей">Оверлей<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V4H3v13h5"/></svg></button><button type="button" id="copy-code" aria-label="Скопировать: Код для Streamer.bot">Код для Streamer.bot<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V4H3v13h5"/></svg></button></div><p id="copy-result" role="status"></p><textarea id="copy-fallback" aria-label="Для ручного копирования" readonly hidden style="width:100%;height:100px"></textarea></main>
-<script src="sourmusic-connection.js?v=10"></script><script src="firebase-config.js?v=10"></script><script src="sourmusic-cloud.js?v=10"></script>
+<section class="request-section"><h3 class="section-label">Добавить трек</h3><form id="add"><input name="video" aria-label="Ссылка YouTube" placeholder="Ссылка на YouTube" required><input name="viewer" aria-label="Ник заказавшего" placeholder="Ник заказавшего" maxlength="60"><button id="add-button">Добавить +</button></form></section>
+<section class="setup-section"><h3 class="section-label">Подключение к эфиру</h3><div class="copy-actions"><button type="button" id="copy-source" aria-label="Скопировать: Источник OBS">Источник OBS<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V4H3v13h5"/></svg></button><button type="button" id="copy-dock" aria-label="Скопировать: Док управления">Док управления<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V4H3v13h5"/></svg></button><button type="button" id="copy-overlay" aria-label="Скопировать: Оверлей">Оверлей<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V4H3v13h5"/></svg></button><button type="button" id="copy-code" aria-label="Скопировать: Код для Streamer.bot">Код для Streamer.bot<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V4H3v13h5"/></svg></button></div><p id="copy-result" role="status"></p><textarea id="copy-fallback" aria-label="Для ручного копирования" readonly hidden></textarea></section><footer class="footer"><span>SourWaters · сделано для эфира</span><i></i></footer>
+</main>
+<script src="sourmusic-connection.js?v=12"></script><script src="firebase-config.js?v=12"></script><script src="sourmusic-cloud.js?v=12"></script>
 <script>
 
 const ports = [8080, 8181];
+const MAX_TRACK_SECONDS = 10*60;   // лимит длины для заказов зрителей
+const QUEUE_KEY = 'sourmusic.queue.v1';
 const rewardTitle = 'Заказ музыки SourMusic';
 const videoIdPattern = /^[\w-]{11}$/;
 function videoId(input) {
@@ -91,7 +50,7 @@ const status = message => { get('status').textContent = message; };
 const privacyMode = new URLSearchParams(location.search).get('youtube') === 'privacy';
 const youtubeHost = privacyMode ? 'www.youtube-nocookie.com' : 'www.youtube.com';
 get('page-address').textContent = location.protocol === 'file:'
-  ? 'Откройте плеер по ссылке GitHub Pages.'
+  ? 'Откройте плеер по HTTPS-ссылке из инструкции.'
   : 'Адрес плеера · ' + location.origin + location.pathname + ' · ' + youtubeHost;
 const queue = [];
 let current;
@@ -133,10 +92,10 @@ const acknowledgements = [];
 let remoteState = null, commandPending = null, polling = false;
 let bot, relayAction, publishing = false, publishDirty = false;
 const seenOrders = new Set();
-get('role-label').textContent = controlMode ? 'Док · управление источником OBS · v10' : 'Источник · воспроизведение · v10';
+get('role-label').textContent = controlMode ? 'Док · управление источником OBS · v12' : 'Источник · воспроизведение · v12';
 if(controlMode) get('screen').hidden=true;
 function connectionIndicator(ready){get('connection').textContent=ready?'Подключено':'Подключение…';get('connection').setAttribute('data-ready',String(ready));}
-function playbackButton(active){get('stop').textContent=active?'❚❚':'▶';get('stop').setAttribute('aria-label',active?'Пауза':'Воспроизвести');get('stop').title=active?'Пауза':'Воспроизвести';}
+function playbackButton(active){get('record').setAttribute('data-playing',String(active));get('stop').setAttribute('aria-label',active?'Пауза':'Воспроизвести');get('stop').title=active?'Пауза':'Воспроизвести';}
 
 function readState(value) {
   try {
@@ -156,8 +115,8 @@ async function findRelay() {
   } catch {get('relay').textContent='Нет связи со Streamer.bot';}
 }
 function snapshot() {
-  return {version:10,session:playerSession,at:Date.now(),track:playing,current:current||null,queue,
-    playback:playing?'playing':current?'stopped':'idle',status:get('status').textContent,
+  return {version:12,session:playerSession,at:Date.now(),track:playing,current:current||null,queue:queue.map(q=>({id:q.id,key:q.key,title:String(q.title).slice(0,100),user:q.user})),
+    position:Number(player?.getCurrentTime?.())||0,duration:Number(player?.getDuration?.())||0,sampledAt:Date.now(),playback:playing?'playing':current?'stopped':'idle',status:get('status').textContent,
     cloud:{...cloudInfo,sender:relaySender},order:get('orders').textContent,acks:acknowledgements.slice(-20)};
 }
 async function publishNowPlaying(includeCloud=true) {
@@ -174,7 +133,25 @@ async function publishNowPlaying(includeCloud=true) {
   } catch {relayAction=null;get('relay').textContent='Передача не выполнена: проверьте SourMusic State';}
   finally {publishing=false;}
 }
+
+let artworkId='';
+function updateRecord(){
+ const state=controlMode?remoteState:null,t=controlMode?state?.current:current,active=controlMode?state?.playback==='playing':!!playing;
+ const id=t?.id||'';
+ if(artworkId!==id){artworkId=id;get('cover-art').src=id?'https://i.ytimg.com/vi/'+id+'/hqdefault.jpg':'assets/logo.svg';}
+ get('record').setAttribute('data-playing',String(active));
+ get('playback-label').textContent=active?'Сейчас играет':t?'На паузе':'Ждём первый трек';
+ const duration=controlMode?Number(state?.duration)||0:Number(player?.getDuration?.())||0;
+ let position=controlMode?Number(state?.position)||0:Number(player?.getCurrentTime?.())||0;
+ if(controlMode&&active&&Number.isFinite(state?.sampledAt))position+=Math.max(0,(Date.now()-state.sampledAt)/1000);
+ const pct=duration>0?Math.min(100,Math.max(0,position/duration*100)):0;
+ get('ring-value').setAttribute('style','stroke-dashoffset:'+String(100-pct));get('record-progress').setAttribute('aria-valuenow',String(Math.round(pct)));
+}
+get('cover-art').addEventListener('error',()=>{get('cover-art').src='assets/logo.svg';},{once:true});
+setInterval(updateRecord,500);
+
 function renderRemote() {
+  updateRecord();
   renderSharing();
   const s=remoteState;
   get('track').textContent=s?.current?.title||(s?'Очередь пуста':'Ожидание источника OBS');
@@ -270,7 +247,9 @@ async function resolveTitle(track){
   render();
 }
 function render() {
+  updateRecord();
   if(controlMode){renderRemote();return;}
+  saveQueue();
   get('stop').disabled=!current;
   playbackButton(!!playing);
   get('track').textContent = current?.title || 'Очередь пуста';
@@ -285,14 +264,36 @@ function render() {
   publishNowPlaying();
 }
 
-function enqueue(input, user) {
+function saveQueue(){
+  try{localStorage.setItem(QUEUE_KEY,JSON.stringify({at:Date.now(),tracks:[current,...queue].filter(Boolean).map(t=>({id:t.id,title:t.title,user:t.user,viewer:!!t.viewer}))}));}catch{}
+}
+function restoreQueue(){
+  try{
+    const saved=JSON.parse(localStorage.getItem(QUEUE_KEY)||'null');
+    if(!saved||!Array.isArray(saved.tracks)||Date.now()-saved.at>6*3600e3)return;
+    for(const t of saved.tracks.slice(0,100)){
+      if(!videoIdPattern.test(t?.id)||typeof t.user!=='string')continue;
+      const track={id:t.id,key:crypto.randomUUID(),title:String(t.title||'').slice(0,250)||'Загрузка названия…',user:t.user.slice(0,80),viewer:!!t.viewer};
+      queue.push(track);
+      if(!t.title||t.title==='Загрузка названия…'||t.title.startsWith('Название недоступно'))resolveTitle(track);
+    }
+    if(queue.length){status('Очередь восстановлена · '+queue.length);next();}
+  }catch{}
+}
+
+function enqueue(input, user, viewer=false) {
   const id = videoId(input);
   if (!id) {
     status('Введите ссылку на отдельное видео YouTube.');
     return false;
   }
   if(queue.length>=100){status('В очереди уже 100 треков');return false;}
-  const track = { id, key:crypto.randomUUID(), title: 'Загрузка названия…', user:String(user||'Зритель').slice(0,80) };
+  const name = String(user||'Зритель').slice(0,80);
+  if (viewer) {
+    const all = [current, ...queue].filter(Boolean);
+    if (all.some(t => t.id === id)) { status('Этот трек уже в очереди.'); return false; }
+  }
+  const track = { id, key:crypto.randomUUID(), title: 'Загрузка названия…', user:name, viewer };
   queue.push(track);
   resolveTitle(track);
   if (!current) next();
@@ -304,7 +305,6 @@ function next() {
   stoppedByUser=false;
   get('manual').hidden = true;
   playing = null;
-  publishNowPlaying();
   clearTimeout(loadTimeout);
   const oldPlayer = player;
   player = null;
@@ -350,6 +350,8 @@ function start() {
         if (event.data === YT.PlayerState.ENDED) { if(!stoppedByUser)next(); return; }
         if (event.data === YT.PlayerState.PLAYING) {
           clearTimeout(loadTimeout);
+          const duration = event.target.getDuration?.() || 0;
+          if (track.viewer && duration > MAX_TRACK_SECONDS) { status('Трек длиннее ' + MAX_TRACK_SECONDS/60 + ' минут — пропущен.'); next(); return; }
           const title = event.target.getVideoData?.()?.title;
           if (title) track.title = title;
           playing = track;
@@ -372,6 +374,7 @@ function start() {
         clearTimeout(loadTimeout);
         playing = null;
         publishNowPlaying();
+        if (event.data !== 153) setTimeout(() => { if (current === track && !playing) next(); }, [2, 5, 100].includes(event.data) ? 3000 : 30000);
         if ([101, 150].includes(event.data)) {
           get('watch').href = 'https://www.youtube.com/watch?v=' + track.id;
           get('manual-title').value = event.target?.getVideoData?.()?.title || '';
@@ -382,7 +385,7 @@ function start() {
         }
         if (event.data === 153) {
           status(location.protocol === 'file:'
-            ? 'YouTube 153 · откройте плеер по ссылке GitHub Pages.'
+            ? 'YouTube 153 · откройте плеер по HTTPS-ссылке из инструкции.'
             : 'YouTube 153 · откройте этот же адрес в Edge или Chrome для проверки.');
           return;
         }
@@ -397,6 +400,7 @@ get('manual').addEventListener('submit', event => {
   const title = get('manual-title').value.trim();
   if (get('manual').hidden || !current || !title) return;
   current.title = title;
+  current.manual = true;
   playing = current;
   publishNowPlaying();
   render();
@@ -415,10 +419,11 @@ get('add').addEventListener('submit', async event => {
 get('next').addEventListener('click',()=>controlMode?sendCommand('next'):next());
 renderSharing();
 get('share-toggle').addEventListener('change',async e=>{if(controlMode)await sendCommand('share',{enabled:e.target.checked,sender:get('relay-sender').value});else await setSharing(e.target.checked,get('relay-sender').value);renderSharing();});
-get('copy-follower').addEventListener('click',()=>{const info=controlMode?remoteState?.cloud:cloudInfo;if(info?.room)copyValue(new URL('music_follower.html?v=10#room='+info.room,location.href).href);});
+get('copy-follower').addEventListener('click',()=>{const info=controlMode?remoteState?.cloud:cloudInfo;if(info?.room)copyValue(new URL('music_follower.html?v=12.2#room='+info.room,location.href).href);});
 if(!controlMode&&localStorage.getItem('sourmusic.share.enabled')==='1')setSharing(true);
 get('stop').addEventListener('click',()=>{if(controlMode)sendCommand(remoteState?.playback==='playing'?'stop':'play');else if(playing)stopTrack();else resumeTrack();});
 bot = sourmusicConnect({
+  events:controlMode?null:undefined,
   onStatus:text=>{connectionIndicator(!controlMode && text.startsWith('Streamer.bot подключён'));if(controlMode&&!text.startsWith('Streamer.bot подключён')){remoteState=null;renderRemote();}},
   onReady:()=>{findRelay();pollSync();},
   onEvent:({event,data})=>{
@@ -430,26 +435,27 @@ bot = sourmusicConnect({
       const parts=text.trim().split(/\s+/);
       if(parts.length!==4||parts[0].toLowerCase()!=='!addsourmusic'||!videoId(parts[1])||!/^\w{1,25}$/.test(parts[2])||! /^[a-zA-Z0-9-]{8,80}$/.test(parts[3]))return;
       const key='relay:'+login+':'+parts[3];if(seenOrders.has(key))return;
-      if(enqueue(parts[1],parts[2])){seenOrders.add(key);if(seenOrders.size>500)seenOrders.delete(seenOrders.values().next().value);}
+      if(enqueue(parts[1],parts[2],true)){seenOrders.add(key);if(seenOrders.size>500)seenOrders.delete(seenOrders.values().next().value);}
       return;
     }
     if(String(event.source).toLowerCase()!=='twitch'||String(event.type).toLowerCase()!=='rewardredemption')return;
     const name=String(data?.reward?.title ?? data?.rewardName ?? data?.rewardTitle ?? '').trim();
     const input=String(data?.user_input ?? data?.userInput ?? data?.rawInput ?? '').trim();
     const normal=s=>s.normalize('NFKC').replace(/\s+/g,' ').trim().toLowerCase();
-    const note=message=>{get('orders').textContent='Заказы · v10 · '+new Date().toLocaleTimeString()+': '+message;publishNowPlaying();};
+    const note=message=>{get('orders').textContent='Заказы · v12 · '+new Date().toLocaleTimeString()+': '+message;publishNowPlaying();};
     if(normal(name)!==normal(rewardTitle)){note('Получена награда «'+name+'», ожидается «'+rewardTitle+'».');return;}
     if(!input){note('Заказ получен, но поле ссылки пустое. Поля события: '+Object.keys(data||{}).join(', '));return;}
     if(!videoId(input)){note('Заказ получен, но ссылка не распознана: '+input.slice(0,250));return;}
     const redemptionId=data.redemptionId ?? data.id;
     if(redemptionId && seenOrders.has(redemptionId)){note('Повтор того же заказа — уже обработан.');return;}
     const user=data.user?.displayName||data.user?.name||data.user?.login||data.user_name||data.user_login||data.userName||(typeof data.user==='string'?data.user:'Зритель');
-    if(enqueue(input,user)){
+    if(enqueue(input,user,true)){
       if(redemptionId){seenOrders.add(redemptionId);if(seenOrders.size>500)seenOrders.delete(seenOrders.values().next().value);}
       note('Добавлен трек '+videoId(input)+' · '+user);
-    }
+    }else note('Заказ отклонён: '+get('status').textContent);
   }
 });
+if(!controlMode)restoreQueue();
 window.onYouTubeIframeAPIReady = () => {
   apiReady = true;
   if (current) start();
@@ -463,12 +469,12 @@ api.onerror = () => {
 };
 document.head.append(api);
 }
-const codeForStreamerBot="using System;\nusing Newtonsoft.Json;\nusing Newtonsoft.Json.Linq;\n\npublic class CPHInline\n{\n    private static readonly object Gate = new object();\n    public bool Execute()\n    {\n        lock (Gate)\n        {\n            try\n            {\n                string value;\n                long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();\n                if (CPH.TryGetArg<string>(\"sourmusicCommand\", out value))\n                {\n                    if (String.IsNullOrEmpty(value) || value.Length > 4096) return false;\n                    JObject command = JObject.Parse(value);\n                    string type = (string)command[\"type\"];\n                    if (type != \"next\" && type != \"stop\" && type != \"play\" && type != \"add\" && type != \"share\") return false;\n                    if (String.IsNullOrEmpty((string)command[\"id\"]) || String.IsNullOrEmpty((string)command[\"session\"])) return false;\n                    command[\"at\"] = now;\n                    string saved = CPH.GetGlobalVar<string>(\"sourmusic.commands\", false);\n                    JArray commands = String.IsNullOrEmpty(saved) ? new JArray() : JArray.Parse(saved);\n                    foreach (JToken item in commands) if ((string)item[\"id\"] == (string)command[\"id\"]) return true;\n                    commands.Add(command);\n                    while (commands.Count > 64) commands.RemoveAt(0);\n                    CPH.SetGlobalVar(\"sourmusic.commands\", commands.ToString(Formatting.None), false);\n                    return true;\n                }\n                if (!CPH.TryGetArg<string>(\"sourmusicState\", out value) || String.IsNullOrEmpty(value) || value.Length > 65536) return false;\n                JObject state = JObject.Parse(value);\n                state[\"at\"] = now;\n                CPH.SetGlobalVar(\"sourmusic.nowPlaying\", state.ToString(Formatting.None), false);\n                return true;\n            }\n            catch { return false; }\n        }\n    }\n}\n";
+const codeForStreamerBot="using System;\nusing Newtonsoft.Json;\nusing Newtonsoft.Json.Linq;\n\npublic class CPHInline\n{\n    private static readonly object Gate = new object();\n    public bool Execute()\n    {\n        lock (Gate)\n        {\n            try\n            {\n                string value;\n                long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();\n                if (CPH.TryGetArg<string>(\"sourmusicCommand\", out value))\n                {\n                    if (String.IsNullOrEmpty(value) || value.Length > 4096) return false;\n                    JObject command = JObject.Parse(value);\n                    string type = (string)command[\"type\"];\n                    if (type != \"next\" && type != \"stop\" && type != \"play\" && type != \"add\" && type != \"share\") return false;\n                    if (String.IsNullOrEmpty((string)command[\"id\"]) || String.IsNullOrEmpty((string)command[\"session\"])) return false;\n                    if (type == \"add\")\n                    {\n                        string url = (string)command[\"url\"];\n                        string viewer = (string)command[\"user\"];\n                        if (String.IsNullOrEmpty(url) || url.Length > 300 || (viewer != null && viewer.Length > 80)) return false;\n                    }\n                    command[\"at\"] = now;\n                    string saved = CPH.GetGlobalVar<string>(\"sourmusic.commands\", false);\n                    JArray commands;\n                    try { commands = String.IsNullOrEmpty(saved) ? new JArray() : JArray.Parse(saved); }\n                    catch (Exception parseError)\n                    {\n                        CPH.LogError(\"SourMusic: очередь команд повреждена и сброшена: \" + parseError.Message);\n                        commands = new JArray();\n                    }\n                    foreach (JToken item in commands) if ((string)item[\"id\"] == (string)command[\"id\"]) return true;\n                    commands.Add(command);\n                    while (commands.Count > 64) commands.RemoveAt(0);\n                    CPH.SetGlobalVar(\"sourmusic.commands\", commands.ToString(Formatting.None), false);\n                    return true;\n                }\n                if (!CPH.TryGetArg<string>(\"sourmusicState\", out value) || String.IsNullOrEmpty(value) || value.Length > 65536) return false;\n                JObject state = JObject.Parse(value);\n                state[\"at\"] = now;\n                CPH.SetGlobalVar(\"sourmusic.nowPlaying\", state.ToString(Formatting.None), false);\n                // Лёгкая копия для оверлея: только текущий трек.\n                JObject small = new JObject();\n                small[\"at\"] = now;\n                JToken track = state[\"track\"];\n                small[\"track\"] = track == null ? JValue.CreateNull() : track.DeepClone();\n                CPH.SetGlobalVar(\"sourmusic.track\", small.ToString(Formatting.None), false);\n                return true;\n            }\n            catch (Exception error)\n            {\n                CPH.LogError(\"SourMusic State: \" + error.Message);\n                return false;\n            }\n        }\n    }\n}\n";
 async function copyValue(value){
  try{await navigator.clipboard.writeText(value);get('copy-result').textContent='Скопировано';get('copy-fallback').hidden=true;}
  catch{const field=get('copy-fallback');field.value=value;field.hidden=false;field.focus();field.select();get('copy-result').textContent='Нажмите Ctrl+C';}
 }
 const baseUrl=new URL('./',location.href);
-for(const [id,path] of [['copy-source','?role=source&v=10'],['copy-dock','?role=control&v=10'],['copy-overlay','music_overlay.html?v=10']])get(id).addEventListener('click',()=>copyValue(new URL(path,baseUrl).href));
+for(const [id,path] of [['copy-source','?role=source&v=12'],['copy-dock','?role=control&v=12'],['copy-overlay','music_overlay.html?v=12']])get(id).addEventListener('click',()=>copyValue(new URL(path,baseUrl).href));
 get('copy-code').addEventListener('click',()=>copyValue(codeForStreamerBot));
 </script></html>
